@@ -1,0 +1,10 @@
+[package]
+name = "mui-strings"
+version = "0.1.0"
+authors = ["PotatoDrug <zhy.david@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+goblin = "0.0.22"
+clap = "^2.33"
+scroll = "0.9.2"
