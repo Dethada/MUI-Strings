@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::Read;
 use std::process::exit;
 use std::string::String;
+use scroll;
 
 #[derive(Debug)]
 struct ResourceDir {
@@ -30,17 +31,17 @@ impl ResourceDir {
         self.number_of_named_entries + self.number_of_id_entries
     }
 
-    fn parse(data: &Vec<u8>, offset: &mut usize) -> ResourceDir {
-        ResourceDir {
+    fn parse(data: &Vec<u8>, offset: &mut usize) -> Result<ResourceDir, scroll::Error> {
+        Ok(ResourceDir {
             file_offset: *offset,
-            characteristics: data.gread_with(offset, scroll::LE).unwrap(),
-            time_date_stamp: data.gread_with(offset, scroll::LE).unwrap(),
-            major_version: data.gread_with(offset, scroll::LE).unwrap(),
-            minor_version: data.gread_with(offset, scroll::LE).unwrap(),
-            number_of_named_entries: data.gread_with(offset, scroll::LE).unwrap(),
-            number_of_id_entries: data.gread_with(offset, scroll::LE).unwrap(),
+            characteristics: data.gread_with(offset, scroll::LE)?,
+            time_date_stamp: data.gread_with(offset, scroll::LE)?,
+            major_version: data.gread_with(offset, scroll::LE)?,
+            minor_version: data.gread_with(offset, scroll::LE)?,
+            number_of_named_entries: data.gread_with(offset, scroll::LE)?,
+            number_of_id_entries: data.gread_with(offset, scroll::LE)?,
             entries: Vec::new(),
-        }
+        })
     }
 }
 
@@ -54,12 +55,12 @@ struct ResourceDirEntry {
 }
 
 impl ResourceDirEntry {
-    fn parse(data: &Vec<u8>, offset: &mut usize) -> ResourceDirEntry {
-        ResourceDirEntry {
+    fn parse(data: &Vec<u8>, offset: &mut usize) -> Result<ResourceDirEntry, scroll::Error> {
+        Ok(ResourceDirEntry {
             file_offset: *offset,
-            name: data.gread_with(offset, scroll::LE).unwrap(),
-            offset_to_data: data.gread_with(offset, scroll::LE).unwrap(),
-        }
+            name: data.gread_with(offset, scroll::LE)?,
+            offset_to_data: data.gread_with(offset, scroll::LE)?,
+        })
     }
 }
 
@@ -77,14 +78,14 @@ struct ResourceDataEntry {
 }
 
 impl ResourceDataEntry {
-    fn parse(data: &Vec<u8>, offset: &mut usize) -> ResourceDataEntry {
-        ResourceDataEntry {
+    fn parse(data: &Vec<u8>, offset: &mut usize) -> Result<ResourceDataEntry, scroll::Error> {
+        Ok(ResourceDataEntry {
             file_offset: *offset,
-            offset_to_data: data.gread_with(offset, scroll::LE).unwrap(),
-            size: data.gread_with(offset, scroll::LE).unwrap(),
-            code_page: data.gread_with(offset, scroll::LE).unwrap(),
-            reserved: data.gread_with(offset, scroll::LE).unwrap(),
-        }
+            offset_to_data: data.gread_with(offset, scroll::LE)?,
+            size: data.gread_with(offset, scroll::LE)?,
+            code_page: data.gread_with(offset, scroll::LE)?,
+            reserved: data.gread_with(offset, scroll::LE)?,
+        })
     }
 }
 
@@ -96,12 +97,12 @@ impl ResourceDataEntry {
 /// let resource_dir = read_dir(&buffer, &mut offset);
 /// ```
 fn read_dir(bytes: &Vec<u8>, offset: &mut usize) -> ResourceDir {
-    let mut rdir_root = ResourceDir::parse(&bytes, offset);
+    let mut rdir_root = ResourceDir::parse(&bytes, offset).unwrap();
 
     // Type Dir
     let num_entries = rdir_root.num_of_entries() as usize;
     for _ in 0..num_entries {
-        rdir_root.entries.push(ResourceDirEntry::parse(&bytes, offset));
+        rdir_root.entries.push(ResourceDirEntry::parse(&bytes, offset).unwrap());
     }
     rdir_root
 }
@@ -174,7 +175,7 @@ fn main() {
             // in the mui file and they are not right next to each other.
             for i in 0..skip_count+read_count {
                 if i >= skip_count {
-                    let data_entry = ResourceDataEntry::parse(&buffer, &mut base_offset);
+                    let data_entry = ResourceDataEntry::parse(&buffer, &mut base_offset).unwrap();
                     let start_addr = find_offset(data_entry.offset_to_data as usize, sections, file_alignment).unwrap();
                     let end_addr = find_offset((data_entry.offset_to_data+data_entry.size) as usize, sections, file_alignment).unwrap();
                     let data = &buffer[start_addr..end_addr];
