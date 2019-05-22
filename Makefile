@@ -3,4 +3,4 @@ build-release:
 build-dev:
 	cargo build
 install:
-	cp target/release/chars /usr/bin/chars
+	cp target/release/ms /usr/bin/

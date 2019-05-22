@@ -1,10 +1,18 @@
 [package]
 name = "mui-strings"
 version = "0.1.0"
-authors = ["PotatoDrug <zhy.david@gmail.com>"]
+authors = ["David Z. <david@dzhy.dev>"]
 edition = "2018"
 
+[lib]
+name = "mui_strings"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ms"
+path = "src/bin/cli.rs"
+
 [dependencies]
-goblin = "0.0.22"
+goblin = "^0.0.22"
 clap = "^2.33"
-scroll = "0.9.2"
+scroll = "^0.9.2"
