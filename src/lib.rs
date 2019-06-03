@@ -104,6 +104,49 @@ fn read_dir(bytes: &Vec<u8>, offset: &mut usize) -> Result<ResourceDir, scroll::
     Ok(rdir_root)
 }
 
+// If the length is an odd number last byte of information will be lost.
+fn convert_to_u16(u8_data: &[u8]) -> Vec<u16> {
+    let mut i = 0;
+    let mut u16_data: Vec<u16> = Vec::new();
+    let data_len = u8_data.len();
+    while i < u8_data.len() {
+        if i+1 >= data_len {
+            break;
+        }
+        let number = ((u8_data[i+1] as u16) << 8) | u8_data[i] as u16;
+        u16_data.push(number);
+        i += 2;
+    }
+    u16_data
+}
+
+fn parse_strings(data: &[u8]) -> String {
+    let mut i = 0;
+    let mut error_count = 0;
+    let mut output = String::new();
+    let data_u16 = convert_to_u16(data);
+    let data_len = data_u16.len();
+    while i < data_len {
+        let len = data_u16[i] as usize;
+
+        i += 1;
+        if 0 < len && len < data_len {
+            match String::from_utf16(&data_u16[i..i+len]) {
+                Ok(string) => {
+                    output.push_str(&string);
+                },
+                Err(_) => error_count += 1,
+            };
+            if error_count > 2 {
+                break;
+            }
+            i += len;
+        }
+        // counter += 1;
+    }
+    output
+}
+
 // const RESOURCE_DIR_SIZE: usize = 16;
 // const RESOURCE_DIR_ENTRY_SIZE: usize = 8;
 const RESOURCE_DATA_ENTRY_SIZE: usize = 16;
@@ -116,7 +159,7 @@ pub fn get_strings(buffer: &Vec<u8>) -> Result<String, error::Error> {
     let rsrc = optional_header.data_directories.get_resource_table().ok_or(error::Error::DataDir)?;
     let rva = rsrc.virtual_address as usize;
     let mut base_offset = utils::find_offset(rva, sections, file_alignment).ok_or(error::Error::Offset(rva))?;
-    
+
     // Type dir
     let rdir_root = read_dir(&buffer, &mut base_offset)?;
 
@@ -161,7 +204,8 @@ pub fn get_strings(buffer: &Vec<u8>) -> Result<String, error::Error> {
             let end_rva = (data_entry.offset_to_data+data_entry.size) as usize;
             let end_addr = utils::find_offset(end_rva, sections, file_alignment).ok_or(error::Error::Offset(end_rva))?;
             let data = &buffer[start_addr..end_addr];
-            ret_str.push_str(&String::from_utf8_lossy(&data));
+
+            ret_str.push_str(&parse_strings(data));
         } else {
             // Skip data until we reach out desired data entries.
             base_offset += RESOURCE_DATA_ENTRY_SIZE;
