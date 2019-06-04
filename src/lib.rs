@@ -130,7 +130,7 @@ fn parse_strings(data: &[u8]) -> String {
         let len = data_u16[i] as usize;
 
         i += 1;
-        if 0 < len && len < data_len {
+        if 0 < len && i+len < data_len {
             match String::from_utf16(&data_u16[i..i+len]) {
                 Ok(string) => {
                     output.push_str(&string);
