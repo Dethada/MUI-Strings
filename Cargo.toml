@@ -1,5 +1,5 @@
 [package]
-name = "mui-strings"
+name = "mui_strings"
 version = "0.1.0"
 authors = ["David Z. <david@dzhy.dev>"]
 edition = "2018"
